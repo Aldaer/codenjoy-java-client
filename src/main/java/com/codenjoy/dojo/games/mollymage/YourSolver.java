@@ -70,15 +70,16 @@ public class YourSolver implements Solver<Board> {
             Point pt = nearPoints[i];
 
             if (board.isFutureBlastAt(pt)) dirScores[i] -= 100;
-            if (ghostSearch.isFound() && ghostSearch.totalSteps<4) {
-                dirScores[ghostSearch.backTrace().ordinal()] -= 50 / ghostSearch.totalSteps;
-            }
-            if (boxSearch.isFound() && boxSearch.totalSteps < 10) {
-                dirScores[boxSearch.backTrace().ordinal()] += 20;
-            }
-            if (potionSearch.isFound() && potionSearch.totalSteps < 8) {
-                dirScores[potionSearch.backTrace().ordinal()] += 30 / potionSearch.totalSteps;
-            }
+
+        }
+        if (ghostSearch.isFound() && ghostSearch.totalSteps<4) {
+            dirScores[ghostSearch.backTrace().ordinal()] -= 50 / ghostSearch.totalSteps;
+        }
+        if (boxSearch.isFound() && boxSearch.totalSteps < 10) {
+            dirScores[boxSearch.backTrace().ordinal()] += 20;
+        }
+        if (potionSearch.isFound() && potionSearch.totalSteps < 8) {
+            dirScores[potionSearch.backTrace().ordinal()] += 30 / potionSearch.totalSteps;
         }
         System.out.printf("Weights: [%d,%d,%d,%d,%d,%d]", dirScores[0], dirScores[1], dirScores[2], dirScores[3], dirScores[4], dirScores[5]);
 

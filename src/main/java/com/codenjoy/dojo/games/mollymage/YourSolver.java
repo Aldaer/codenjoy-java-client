@@ -70,6 +70,7 @@ public class YourSolver implements Solver<Board> {
             Point pt = nearPoints[i];
 
             if (board.isFutureBlastAt(pt)) dirScores[i] -= 100;
+            if (board.isTreasureBoxAt(pt)) dirScores[i] -= 100;
 
         }
         if (ghostSearch.isFound() && ghostSearch.totalSteps<4) {

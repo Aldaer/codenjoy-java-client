@@ -65,22 +65,25 @@ public class YourSolver implements Solver<Board> {
         List<Element> boardNear = board.getNear(me);
         SearchField searchField = new SearchField();
         searchField.searchFor(Element.TREASURE_BOX, me);
+        Direction potentialDir = null;
         if (searchField.isFound()) {
             if (searchField.totalSteps > 1) {
-                return Command.MOVE.apply(searchField.backTrace());
-            }
-            if (boardNear.contains(Element.NONE)) {
-                return Command.DROP_POTION_THEN_MOVE.apply(findNearMe(Element.NONE));
+                potentialDir = searchField.backTrace();
+            } else if (boardNear.contains(Element.NONE) && ! board.getFutureBlasts().contains(searchField.found)) {
+                Direction safeMove = findNearMe(Element.NONE);
+                if (safeMove != null) {
+                    return Command.DROP_POTION_THEN_MOVE.apply(safeMove);
+                }
             }
         }
-        return Command.DROP_POTION;
+        return potentialDir != null? Command.MOVE.apply(potentialDir) : Command.DROP_POTION;
     }
 
     public Direction findNearMe(Element element) {
         for (Direction dir : Direction.values()) {
             Point near = me.copy();
             near.move(dir);
-            if (board.getAt(near) == element) return dir;
+            if (board.getAt(near) == element && !board.getFutureBlasts().contains(near)) return dir;
         }
         return null;
     }

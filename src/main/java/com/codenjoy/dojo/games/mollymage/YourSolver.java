@@ -30,6 +30,8 @@ import com.codenjoy.dojo.services.Point;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /**
  * Author: your name
@@ -56,19 +58,30 @@ public class YourSolver implements Solver<Board> {
         this.board = board;
         if (board.isGameOver()) return "";
         boardSize = board.size();
+        int[] dirScores = new int[6];
+        Point[] nearPoints = IntStream.range(0,6).mapToObj(n -> nearMe(Direction.valueOf(n))).toArray(Point[]::new);
+
+        SearchField boxSearch = new SearchField(Element.TREASURE_BOX).searchFor(me);
+        SearchField ghostSearch = new SearchField(Element.GHOST).searchFor(me);
+
+        for (int i = 0; i < 6; i++) {
+            Point pt = nearPoints[i];
+            Direction dir = Direction.valueOf(i);
+        }
 
         me = board.getHero();
         String safe = evadeBlast();
         if (safe != null) {
+            System.out.println("EVADING BLAST!");
             return safe;
         }
         List<Element> boardNear = board.getNear(me);
-        SearchField searchField = new SearchField();
-        searchField.searchFor(Element.TREASURE_BOX, me);
-        Direction potentialDir = null;
-        if (searchField.isFound()) {
-            if (searchField.totalSteps > 1) {
-                potentialDir = searchField.backTrace();
+
+        if (boxSearch.isFound()) {
+
+            if (boxSearch.totalSteps > 1) {
+                System.out.println("GOING TO CHEST @[" + boxSearch.found.getX() + "," + boxSearch.found.getY() + "]");
+                potentialDir = boxSearch.backTrace();
             } else if (boardNear.contains(Element.NONE) && ! board.getFutureBlasts().contains(searchField.found)) {
                 Direction safeMove = findNearMe(Element.NONE);
                 if (safeMove != null) {
@@ -76,14 +89,21 @@ public class YourSolver implements Solver<Board> {
                 }
             }
         }
+        if (!checkIfSafe(potentialDir)) potentialDir = null;
         return potentialDir != null? Command.MOVE.apply(potentialDir) : Command.DROP_POTION;
+    }
+
+    private Point nearMe(Direction direction) {
+        Point copy = me.copy();
+        copy.move(direction);
+        return copy;
     }
 
     public Direction findNearMe(Element element) {
         for (Direction dir : Direction.values()) {
             Point near = me.copy();
             near.move(dir);
-            if (board.getAt(near) == element && !board.getFutureBlasts().contains(near)) return dir;
+            if (board.getAt(near) == element && !board.isFutureBlastAt(near)) return dir;
         }
         return null;
     }
@@ -99,13 +119,21 @@ public class YourSolver implements Solver<Board> {
         return null;
     }
 
+    public boolean checkIfSafe(Direction dir) {
+        Point copy = me.copy();
+        copy.move(dir);
+        return !board.isFutureBlastAt(copy);
+    }
+
     public class SearchField {
+        private final Element element;
         Point found;
         int totalSteps;
         int[][] distances;
         Deque<Point> searchQueue;
 
-        public SearchField() {
+        public SearchField(Element element) {
+            this.element = element;
             this.distances = new int[boardSize][boardSize];
             for (int i = 0; i < boardSize; i++) {
                 for (int j = 0; j < boardSize; j++) {
@@ -115,7 +143,7 @@ public class YourSolver implements Solver<Board> {
             searchQueue = new ArrayDeque<>();
         }
 
-        void searchFor(Element element, Point coords) {
+        SearchField searchFor(Point coords) {
             Element here = board.getAt(coords.getX(), coords.getY());
             if (here.equals(Element.HERO)) {
                 distances[coords.getX()][coords.getY()] = 0;
@@ -138,8 +166,9 @@ public class YourSolver implements Solver<Board> {
             }
             if (!isFound() && !searchQueue.isEmpty()) {
                 var nextPoint = searchQueue.pollFirst();
-                searchFor(element, nextPoint);
+                searchFor(nextPoint);
             }
+            return this;
         }
 
         boolean isFound() {

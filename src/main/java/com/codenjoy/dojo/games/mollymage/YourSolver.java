@@ -29,6 +29,7 @@ import com.codenjoy.dojo.services.Point;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.List;
 
 /**
  * Author: your name
@@ -57,12 +58,42 @@ public class YourSolver implements Solver<Board> {
         boardSize = board.size();
 
         me = board.getHero();
+        String safe = evadeBlast();
+        if (safe != null) {
+            return safe;
+        }
+        List<Element> boardNear = board.getNear(me);
         SearchField searchField = new SearchField();
         searchField.searchFor(Element.TREASURE_BOX, me);
         if (searchField.isFound()) {
-            return Command.MOVE.apply(searchField.backTrace());
+            if (searchField.totalSteps > 1) {
+                return Command.MOVE.apply(searchField.backTrace());
+            }
+            if (boardNear.contains(Element.NONE)) {
+                return Command.DROP_POTION_THEN_MOVE.apply(findNearMe(Element.NONE));
+            }
         }
         return Command.DROP_POTION;
+    }
+
+    public Direction findNearMe(Element element) {
+        for (Direction dir : Direction.values()) {
+            Point near = me.copy();
+            near.move(dir);
+            if (board.getAt(near) == element) return dir;
+        }
+        return null;
+    }
+
+    public String evadeBlast() {
+        List<Point> futureBlasts = board.getFutureBlasts();
+        if (!futureBlasts.contains(me)) return null;
+        for (Direction dir : Direction.values()) {
+            Point near = me.copy();
+            near.move(dir);
+            if (!futureBlasts.contains(near)) return Command.MOVE.apply(dir);
+        }
+        return null;
     }
 
     public class SearchField {

@@ -43,7 +43,7 @@ public class JavaRunner {
     // Paste here board page url from browser after registration,
     // or put it as command line parameter.
     private String url =
-            "http://127.0.0.1:8080/codenjoy-contest/board/player/0?code=000000000000";
+            "https://dojorena.io/codenjoy-contest/board/player/dojorena4870?code=4154909620487555049";
 
     public void run(String[] args) {
         System.out.println("+-----------------+");

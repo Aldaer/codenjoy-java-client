@@ -23,7 +23,9 @@ package com.codenjoy.dojo.games.mollymage;
  */
 
 
+import com.codenjoy.dojo.services.Direction;
 import com.codenjoy.dojo.services.Point;
+import com.codenjoy.dojo.services.dice.RandomDice;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -80,6 +82,15 @@ public class BoardTest {
 
     private void assertBoard(String expected) {
         assertEquals(expected, board.toString());
+    }
+
+    @Test
+    public void testFindDirection() {
+        var solver = new YourSolver(new RandomDice());
+        solver.get(board);
+        YourSolver.SearchField searchField = solver.new SearchField();
+        searchField.searchFor(Element.POTION_TIMER_2,board.getHero());
+        assertEquals(Direction.RIGHT, searchField.backTrace());
     }
 
     @Test

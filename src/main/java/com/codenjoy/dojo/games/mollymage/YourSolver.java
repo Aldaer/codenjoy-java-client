@@ -24,6 +24,11 @@ package com.codenjoy.dojo.games.mollymage;
 
 import com.codenjoy.dojo.client.Solver;
 import com.codenjoy.dojo.services.Dice;
+import com.codenjoy.dojo.services.Direction;
+import com.codenjoy.dojo.services.Point;
+
+import java.util.ArrayDeque;
+import java.util.Deque;
 
 /**
  * Author: your name
@@ -37,6 +42,9 @@ public class YourSolver implements Solver<Board> {
 
     private Dice dice;
     private Board board;
+    private Point me;
+
+    private int boardSize;
 
     public YourSolver(Dice dice) {
         this.dice = dice;
@@ -46,9 +54,82 @@ public class YourSolver implements Solver<Board> {
     public String get(Board board) {
         this.board = board;
         if (board.isGameOver()) return "";
+        boardSize = board.size();
 
-        // TODO put your logic here
-
+        me = board.getHero();
+        SearchField searchField = new SearchField();
+        searchField.searchFor(Element.TREASURE_BOX, me);
+        if (searchField.isFound()) {
+            return Command.MOVE.apply(searchField.backTrace());
+        }
         return Command.DROP_POTION;
+    }
+
+    public class SearchField {
+        Point found;
+        int totalSteps;
+        int[][] distances;
+        Deque<Point> searchQueue;
+
+        public SearchField() {
+            this.distances = new int[boardSize][boardSize];
+            for (int i = 0; i < boardSize; i++) {
+                for (int j = 0; j < boardSize; j++) {
+                    distances[i][j] = 999;
+                }
+            }
+            searchQueue = new ArrayDeque<>();
+        }
+
+        void searchFor(Element element, Point coords) {
+            Element here = board.getAt(coords.getX(), coords.getY());
+            if (here.equals(Element.HERO)) {
+                distances[coords.getX()][coords.getY()] = 0;
+            }
+            var currentDistance = distances[coords.getX()][coords.getY()];
+            if (here.equals(element)) {
+                found = coords;
+                totalSteps = currentDistance;
+            } else {
+                for (int direction = 0; direction < 4; direction++) {
+                    var next = coords.copy();
+                    next.move(Direction.valueOf(direction));
+                    Element nextElem = board.getAt(next);
+                    if (distances[next.getX()][next.getY()] > currentDistance + 1 &&
+                            (nextElem.equals(Element.NONE) || nextElem.equals(element))) {
+                        distances[next.getX()][next.getY()] = currentDistance + 1;
+                        searchQueue.add(next);
+                    }
+                }
+            }
+            if (!isFound() && !searchQueue.isEmpty()) {
+                var nextPoint = searchQueue.pollFirst();
+                searchFor(element, nextPoint);
+            }
+        }
+
+        boolean isFound() {
+            return found != null;
+        }
+
+        Direction backTrace() {
+            int currDistance = totalSteps;
+            Point currPoint = found;
+            Direction lastMove = null;
+            while (currDistance > 0) {
+                int dir = 0;
+                Direction move;
+                Point next;
+                do {
+                    move = Direction.valueOf(dir++);
+                    next = currPoint.copy();
+                    next.move(move);
+                } while (distances[next.getX()][next.getY()] >= currDistance);
+                currDistance--;
+                currPoint = next;
+                lastMove = move;
+            }
+            return lastMove.inverted();
+        }
     }
 }

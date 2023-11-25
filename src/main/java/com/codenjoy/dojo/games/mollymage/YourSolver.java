@@ -28,9 +28,9 @@ import com.codenjoy.dojo.services.Direction;
 import com.codenjoy.dojo.services.Point;
 
 import java.util.ArrayDeque;
+import java.util.Arrays;
 import java.util.Deque;
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 /**
@@ -126,14 +126,14 @@ public class YourSolver implements Solver<Board> {
     }
 
     public class SearchField {
-        private final Element element;
+        private final List<Element> elementsToSearch;
         Point found;
         int totalSteps;
         int[][] distances;
         Deque<Point> searchQueue;
 
-        public SearchField(Element element) {
-            this.element = element;
+        public SearchField(Element... elementsToSearch) {
+            this.elementsToSearch = Arrays.asList(elementsToSearch);
             this.distances = new int[boardSize][boardSize];
             for (int i = 0; i < boardSize; i++) {
                 for (int j = 0; j < boardSize; j++) {
@@ -149,7 +149,7 @@ public class YourSolver implements Solver<Board> {
                 distances[coords.getX()][coords.getY()] = 0;
             }
             var currentDistance = distances[coords.getX()][coords.getY()];
-            if (here.equals(element)) {
+            if (elementsToSearch.contains(here)) {
                 found = coords;
                 totalSteps = currentDistance;
             } else {
@@ -158,7 +158,7 @@ public class YourSolver implements Solver<Board> {
                     next.move(Direction.valueOf(direction));
                     Element nextElem = board.getAt(next);
                     if (distances[next.getX()][next.getY()] > currentDistance + 1 &&
-                            (nextElem.equals(Element.NONE) || nextElem.equals(element))) {
+                            (nextElem.equals(Element.NONE) || elementsToSearch.contains(nextElem))) {
                         distances[next.getX()][next.getY()] = currentDistance + 1;
                         searchQueue.add(next);
                     }

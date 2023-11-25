@@ -58,6 +58,7 @@ public class YourSolver implements Solver<Board> {
         this.board = board;
         if (board.isGameOver()) return "";
         boardSize = board.size();
+        me = board.getHero();
         int[] dirScores = new int[6];
         Point[] nearPoints = IntStream.range(0,6).mapToObj(n -> nearMe(Direction.valueOf(n))).toArray(Point[]::new);
 

@@ -61,36 +61,40 @@ public class YourSolver implements Solver<Board> {
         int[] dirScores = new int[6];
         Point[] nearPoints = IntStream.range(0,6).mapToObj(n -> nearMe(Direction.valueOf(n))).toArray(Point[]::new);
 
-        SearchField boxSearch = new SearchField(Element.TREASURE_BOX).searchFor(me);
-        SearchField ghostSearch = new SearchField(Element.GHOST).searchFor(me);
+        SearchField boxSearch = new SearchField(Element.TREASURE_BOX).searchFrom(me);
+        SearchField ghostSearch = new SearchField(Element.GHOST).searchFrom(me);
+        SearchField potionSearch = new SearchField(Element.POTION_IMMUNE, Element.POTION_COUNT_INCREASE, Element.POTION_BLAST_RADIUS_INCREASE, Element.POTION_REMOTE_CONTROL, Element.POISON_THROWER, Element.POTION_EXPLODER).searchFrom(me);
 
         for (int i = 0; i < 6; i++) {
             Point pt = nearPoints[i];
             Direction dir = Direction.valueOf(i);
-        }
 
-        me = board.getHero();
-        String safe = evadeBlast();
-        if (safe != null) {
-            System.out.println("EVADING BLAST!");
-            return safe;
-        }
-        List<Element> boardNear = board.getNear(me);
-
-        if (boxSearch.isFound()) {
-
-            if (boxSearch.totalSteps > 1) {
-                System.out.println("GOING TO CHEST @[" + boxSearch.found.getX() + "," + boxSearch.found.getY() + "]");
-                potentialDir = boxSearch.backTrace();
-            } else if (boardNear.contains(Element.NONE) && ! board.getFutureBlasts().contains(searchField.found)) {
-                Direction safeMove = findNearMe(Element.NONE);
-                if (safeMove != null) {
-                    return Command.DROP_POTION_THEN_MOVE.apply(safeMove);
-                }
+            if (board.isFutureBlastAt(pt)) dirScores[i] -=100;
+            if (ghostSearch.isFound() && ghostSearch.totalSteps<4) {
+                dirScores[ghostSearch.backTrace().ordinal()] -= 50 / ghostSearch.totalSteps;
+            }
+            if (boxSearch.isFound()) {
+                dirScores[boxSearch.backTrace().ordinal()] += 20;
+            }
+            if (potionSearch.isFound()) {
+                dirScores[potionSearch.backTrace().ordinal()] += 30 / potionSearch.totalSteps;
             }
         }
-        if (!checkIfSafe(potentialDir)) potentialDir = null;
-        return potentialDir != null? Command.MOVE.apply(potentialDir) : Command.DROP_POTION;
+        int bestIndex = 0;
+        int bestValue = -999;
+        for (int i = 0; i < 6; i++) {
+            if (dirScores[i]>bestValue) {
+                bestValue = dirScores[i];
+                bestIndex = i;
+            }
+        }
+        if (bestIndex == 5) return ghostSearch.isFound() && ghostSearch.totalSteps < 3? Command.DROP_POTION : "";
+
+        if ((boxSearch.isFound() && boxSearch.totalSteps == 1)||(ghostSearch.isFound() &&ghostSearch.totalSteps < 3)) {
+            return Command.DROP_POTION_THEN_MOVE.apply(Direction.valueOf(bestIndex));
+        }
+
+        return Command.MOVE.apply(Direction.valueOf(bestIndex));
     }
 
     private Point nearMe(Direction direction) {
@@ -143,7 +147,7 @@ public class YourSolver implements Solver<Board> {
             searchQueue = new ArrayDeque<>();
         }
 
-        SearchField searchFor(Point coords) {
+        SearchField searchFrom(Point coords) {
             Element here = board.getAt(coords.getX(), coords.getY());
             if (here.equals(Element.HERO)) {
                 distances[coords.getX()][coords.getY()] = 0;
@@ -166,7 +170,7 @@ public class YourSolver implements Solver<Board> {
             }
             if (!isFound() && !searchQueue.isEmpty()) {
                 var nextPoint = searchQueue.pollFirst();
-                searchFor(nextPoint);
+                searchFrom(nextPoint);
             }
             return this;
         }

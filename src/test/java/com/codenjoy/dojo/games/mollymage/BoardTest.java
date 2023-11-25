@@ -88,8 +88,8 @@ public class BoardTest {
     public void testFindDirection() {
         var solver = new YourSolver(new RandomDice());
         solver.get(board);
-        YourSolver.SearchField searchField = solver.new SearchField();
-        searchField.searchFor(Element.POTION_TIMER_2,board.getHero());
+        YourSolver.SearchField searchField = solver.new SearchField(Element.POTION_TIMER_2);
+        searchField.searchFrom(board.getHero());
         assertEquals(Direction.RIGHT, searchField.backTrace());
     }
 

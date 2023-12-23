@@ -111,7 +111,7 @@ public class YourSolver implements Solver<Board> {
     }
 
     public boolean isNoGo(Point pt) {
-        return board.isFutureBlastAt(pt) || board.isWallAt(pt) || board.isBarrierAt(pt) || board.isTreasureBoxAt(pt) || board.isGhostAt(pt) | board.isEnemyHeroAt(pt);
+        return board.isFutureBlastAt(pt) || board.isWallAt(pt) || board.isBarrierAt(pt) || board.isTreasureBoxAt(pt) || board.isGhostAt(pt) || board.isEnemyHeroAt(pt);
     }
 
     public class SearchField {

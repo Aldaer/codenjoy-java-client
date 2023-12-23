@@ -47,9 +47,12 @@ public class YourSolver implements Solver<Board> {
             Element.POTION_EXPLODER);
 
     static final EnumSet<Element> PASSABLE = EnumSet.copyOf(POTIONS);
+
     static {
         PASSABLE.add(Element.NONE);
     }
+
+    private static final boolean AGGRESSIVE = true;
 
     private final Dice dice;
     private Board board;
@@ -92,7 +95,8 @@ public class YourSolver implements Solver<Board> {
         if (potionSearch.isFound() && potionSearch.totalSteps < 8) {
             dirScores[potionSearch.backTrace().ordinal()] += 50 / potionSearch.totalSteps;
         }
-        System.out.printf("Weights: [%d,%d,%d,%d,%d,%d]", dirScores[0], dirScores[1], dirScores[2], dirScores[3], dirScores[4], dirScores[5]);
+        System.out.printf("Weights: [%d,%d,%d,%d,%d,%d]", dirScores[0], dirScores[1], dirScores[2], dirScores[3],
+                dirScores[4], dirScores[5]);
 
         int bestIndex = 0;
         int bestValue = -999;
@@ -105,7 +109,8 @@ public class YourSolver implements Solver<Board> {
         String result;
         if (bestIndex == 5) {
             result = ghostSearch.isFound() && ghostSearch.totalSteps < 3 ? Command.DROP_POTION : "";
-        } else if ((boxSearch.isFound() && boxSearch.totalSteps == 1) || (ghostSearch.isFound() && ghostSearch.totalSteps < 3)) {
+        } else if ((boxSearch.isFound() && boxSearch.totalSteps == 1) || (ghostSearch.isFound() && ghostSearch.totalSteps <= 3)
+                || (AGGRESSIVE && opponentSearch.isFound() && opponentSearch.totalSteps <= 2)) {
             result = Command.DROP_POTION_THEN_MOVE.apply(Direction.valueOf(bestIndex));
         } else result = Command.MOVE.apply(Direction.valueOf(bestIndex));
         gotHereFrom = me;

@@ -86,19 +86,14 @@ public class YourSolver implements Solver<Board> {
             if (isNoGo(pt)) dirScores[i] -= 100;
             if (gotHereFrom.equals(pt)) dirScores[i] -= 10;
         }
-        if (ghostSearch.isFound()) {
-            if (ghostSearch.totalSteps < 4) {
-                dirScores[ghostSearch.backTrace().ordinal()] -= 50 / ghostSearch.totalSteps;
-            } else {
-                // Ghost Buster mode
-                dirScores[ghostSearch.backTrace().ordinal()] += 20;
-            }
+        if (ghostSearch.isFound() && ghostSearch.totalSteps < 4) {
+            dirScores[ghostSearch.backTrace().ordinal()] -= 50 / ghostSearch.totalSteps;
         }
         if (boxSearch.isFound() && boxSearch.totalSteps < 10) {
-            dirScores[boxSearch.backTrace().ordinal()] += 10;
+            dirScores[boxSearch.backTrace().ordinal()] += 20;
         }
         if (potionSearch.isFound() && potionSearch.totalSteps < 8) {
-            dirScores[potionSearch.backTrace().ordinal()] += 30 / potionSearch.totalSteps;
+            dirScores[potionSearch.backTrace().ordinal()] += 50 / potionSearch.totalSteps;
         }
         System.out.printf("Weights: [%d,%d,%d,%d,%d,%d]", dirScores[0], dirScores[1], dirScores[2], dirScores[3],
                 dirScores[4], dirScores[5]);
@@ -112,11 +107,9 @@ public class YourSolver implements Solver<Board> {
             }
         }
         String result;
-        if (bestIndex == 5) {
-            result = ghostSearch.isFound() && ghostSearch.totalSteps <= 3 ? Command.DROP_POTION : "";
-        } else if ((boxSearch.isFound() && boxSearch.totalSteps == 1) || (ghostSearch.isFound() && ghostSearch.totalSteps <= 3)
-                || (AGGRESSIVE && opponentSearch.isFound() && opponentSearch.totalSteps <= 2))
-        {
+
+        if ((boxSearch.isFound() && boxSearch.totalSteps == 1) || (ghostSearch.isFound() && ghostSearch.totalSteps <= 3)
+                || (AGGRESSIVE && opponentSearch.isFound() && opponentSearch.totalSteps <= 3)) {
             result = Command.DROP_POTION_THEN_MOVE.apply(Direction.valueOf(bestIndex));
         } else result = Command.MOVE.apply(Direction.valueOf(bestIndex));
         gotHereFrom = me;

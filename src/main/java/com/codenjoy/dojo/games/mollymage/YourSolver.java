@@ -26,6 +26,7 @@ import com.codenjoy.dojo.client.Solver;
 import com.codenjoy.dojo.services.Dice;
 import com.codenjoy.dojo.services.Direction;
 import com.codenjoy.dojo.services.Point;
+import com.codenjoy.dojo.services.PointImpl;
 
 import java.util.ArrayDeque;
 import java.util.Arrays;
@@ -38,12 +39,12 @@ import java.util.stream.IntStream;
  * <p>
  * This is your AI algorithm for the game.
  * Implement it at your own discretion.
- * Pay attention to {@link YourSolverTest} - there is
+ * Pay attention to YourSolverTest - there is
  * a test framework for you.
  */
 public class YourSolver implements Solver<Board> {
 
-    private Dice dice;
+    private final Dice dice;
     private Board board;
     private Point me;
 
@@ -53,6 +54,8 @@ public class YourSolver implements Solver<Board> {
         this.dice = dice;
     }
 
+    private Point gotHereFrom = new PointImpl();
+
     @Override
     public String get(Board board) {
         this.board = board;
@@ -60,7 +63,7 @@ public class YourSolver implements Solver<Board> {
         boardSize = board.size();
         me = board.getHero();
         int[] dirScores = new int[6];
-        Point[] nearPoints = IntStream.range(0,6).mapToObj(n -> nearMe(Direction.valueOf(n))).toArray(Point[]::new);
+        Point[] nearPoints = IntStream.range(0, 6).mapToObj(n -> nearMe(Direction.valueOf(n))).toArray(Point[]::new);
 
         SearchField boxSearch = new SearchField(Element.TREASURE_BOX).searchFrom(me);
         SearchField ghostSearch = new SearchField(Element.GHOST).searchFrom(me);
@@ -69,36 +72,36 @@ public class YourSolver implements Solver<Board> {
         for (int i = 0; i < 6; i++) {
             Point pt = nearPoints[i];
 
-            if (board.isFutureBlastAt(pt)) dirScores[i] -= 100;
-            if (board.isWallAt(pt) || board.isTreasureBoxAt(pt)) dirScores[i] -= 100;
-
+            if (isNoGo(pt)) dirScores[i] -= 100;
+            if (gotHereFrom.equals(pt)) dirScores[i] -= 10;
         }
-        if (ghostSearch.isFound() && ghostSearch.totalSteps<4) {
+        if (ghostSearch.isFound() && ghostSearch.totalSteps < 4) {
             dirScores[ghostSearch.backTrace().ordinal()] -= 50 / ghostSearch.totalSteps;
         }
         if (boxSearch.isFound() && boxSearch.totalSteps < 10) {
             dirScores[boxSearch.backTrace().ordinal()] += 20;
         }
         if (potionSearch.isFound() && potionSearch.totalSteps < 8) {
-            dirScores[potionSearch.backTrace().ordinal()] += 30 / potionSearch.totalSteps;
+            dirScores[potionSearch.backTrace().ordinal()] += 50 / potionSearch.totalSteps;
         }
         System.out.printf("Weights: [%d,%d,%d,%d,%d,%d]", dirScores[0], dirScores[1], dirScores[2], dirScores[3], dirScores[4], dirScores[5]);
 
         int bestIndex = 0;
         int bestValue = -999;
         for (int i = 0; i < 6; i++) {
-            if (dirScores[i]>bestValue) {
+            if (dirScores[i] > bestValue) {
                 bestValue = dirScores[i];
                 bestIndex = i;
             }
         }
-        if (bestIndex == 5) return ghostSearch.isFound() && ghostSearch.totalSteps < 3? Command.DROP_POTION : "";
-
-        if ((boxSearch.isFound() && boxSearch.totalSteps == 1)||(ghostSearch.isFound() &&ghostSearch.totalSteps < 3)) {
-            return Command.DROP_POTION_THEN_MOVE.apply(Direction.valueOf(bestIndex));
-        }
-
-        return Command.MOVE.apply(Direction.valueOf(bestIndex));
+        String result;
+        if (bestIndex == 5) {
+            result = ghostSearch.isFound() && ghostSearch.totalSteps < 3 ? Command.DROP_POTION : "";
+        } else if ((boxSearch.isFound() && boxSearch.totalSteps == 1) || (ghostSearch.isFound() && ghostSearch.totalSteps < 3)) {
+            result = Command.DROP_POTION_THEN_MOVE.apply(Direction.valueOf(bestIndex));
+        } else result = Command.MOVE.apply(Direction.valueOf(bestIndex));
+        gotHereFrom = me;
+        return result;
     }
 
     private Point nearMe(Direction direction) {
@@ -107,30 +110,8 @@ public class YourSolver implements Solver<Board> {
         return copy;
     }
 
-    public Direction findNearMe(Element element) {
-        for (Direction dir : Direction.values()) {
-            Point near = me.copy();
-            near.move(dir);
-            if (board.getAt(near) == element && !board.isFutureBlastAt(near)) return dir;
-        }
-        return null;
-    }
-
-    public String evadeBlast() {
-        List<Point> futureBlasts = board.getFutureBlasts();
-        if (!futureBlasts.contains(me)) return null;
-        for (Direction dir : Direction.values()) {
-            Point near = me.copy();
-            near.move(dir);
-            if (!futureBlasts.contains(near)) return Command.MOVE.apply(dir);
-        }
-        return null;
-    }
-
-    public boolean checkIfSafe(Direction dir) {
-        Point copy = me.copy();
-        copy.move(dir);
-        return !board.isFutureBlastAt(copy);
+    public boolean isNoGo(Point pt) {
+        return board.isFutureBlastAt(pt) || board.isWallAt(pt) || board.isBarrierAt(pt) || board.isTreasureBoxAt(pt) || board.isGhostAt(pt) | board.isEnemyHeroAt(pt);
     }
 
     public class SearchField {
@@ -166,7 +147,8 @@ public class YourSolver implements Solver<Board> {
                     next.move(Direction.valueOf(direction));
                     Element nextElem = board.getAt(next);
                     if (distances[next.getX()][next.getY()] > currentDistance + 1 &&
-                            (nextElem.equals(Element.NONE) || elementsToSearch.contains(nextElem))) {
+                            (nextElem.equals(Element.NONE) || elementsToSearch.contains(nextElem)))
+                    {
                         distances[next.getX()][next.getY()] = currentDistance + 1;
                         searchQueue.add(next);
                     }

@@ -27,11 +27,9 @@ import com.codenjoy.dojo.services.Dice;
 import com.codenjoy.dojo.services.Direction;
 import com.codenjoy.dojo.services.Point;
 import com.codenjoy.dojo.services.PointImpl;
+import com.google.common.collect.Sets;
 
-import java.util.ArrayDeque;
-import java.util.Arrays;
-import java.util.Deque;
-import java.util.List;
+import java.util.*;
 import java.util.stream.IntStream;
 
 /**
@@ -43,6 +41,15 @@ import java.util.stream.IntStream;
  * a test framework for you.
  */
 public class YourSolver implements Solver<Board> {
+
+    static final EnumSet<Element> POTIONS = EnumSet.of(Element.POTION_IMMUNE, Element.POTION_COUNT_INCREASE,
+            Element.POTION_BLAST_RADIUS_INCREASE, Element.POTION_REMOTE_CONTROL, Element.POISON_THROWER,
+            Element.POTION_EXPLODER);
+
+    static final EnumSet<Element> PASSABLE = EnumSet.copyOf(POTIONS);
+    static {
+        PASSABLE.add(Element.NONE);
+    }
 
     private final Dice dice;
     private Board board;
@@ -67,7 +74,8 @@ public class YourSolver implements Solver<Board> {
 
         SearchField boxSearch = new SearchField(Element.TREASURE_BOX).searchFrom(me);
         SearchField ghostSearch = new SearchField(Element.GHOST).searchFrom(me);
-        SearchField potionSearch = new SearchField(Element.POTION_IMMUNE, Element.POTION_COUNT_INCREASE, Element.POTION_BLAST_RADIUS_INCREASE, Element.POTION_REMOTE_CONTROL, Element.POISON_THROWER, Element.POTION_EXPLODER).searchFrom(me);
+        SearchField potionSearch = new SearchField(POTIONS).searchFrom(me);
+        SearchField opponentSearch = new SearchField(Element.ENEMY_HERO).searchFrom(me);
 
         for (int i = 0; i < 6; i++) {
             Point pt = nearPoints[i];
@@ -115,14 +123,18 @@ public class YourSolver implements Solver<Board> {
     }
 
     public class SearchField {
-        private final List<Element> elementsToSearch;
+        private final Collection<Element> elementsToSearch;
         Point found;
         int totalSteps;
         int[][] distances;
         Deque<Point> searchQueue;
 
-        public SearchField(Element... elementsToSearch) {
-            this.elementsToSearch = Arrays.asList(elementsToSearch);
+        public SearchField(Element elementToSearch) {
+            this(Collections.singleton(elementToSearch));
+        }
+
+        public SearchField(Collection<Element> elementsToSearch) {
+            this.elementsToSearch = elementsToSearch;
             this.distances = new int[boardSize][boardSize];
             for (int i = 0; i < boardSize; i++) {
                 for (int j = 0; j < boardSize; j++) {
@@ -147,7 +159,7 @@ public class YourSolver implements Solver<Board> {
                     next.move(Direction.valueOf(direction));
                     Element nextElem = board.getAt(next);
                     if (distances[next.getX()][next.getY()] > currentDistance + 1 &&
-                            (nextElem.equals(Element.NONE) || elementsToSearch.contains(nextElem)))
+                            (PASSABLE.contains(nextElem) || elementsToSearch.contains(nextElem)))
                     {
                         distances[next.getX()][next.getY()] = currentDistance + 1;
                         searchQueue.add(next);
